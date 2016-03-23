@@ -234,7 +234,7 @@ class JeanKevin {
 												':mail' => $mail));
 
 		//Génération d'un code de connexion et du mail
-		$urlConf = "http://".$_SERVER['HTTP_HOST'].WEBROOT."$identifiant/".md5($identifiant.$nom.$prenom);
+		$urlConf = "http://".$_SERVER['HTTP_HOST']."$identifiant/".md5($identifiant.$nom.$prenom);
 		$message = 	"Hello $prenom!\n\r".
 					"Merci de t'être inscrit à Jean-Kévin, pour confirmer ton inscrption et commencer à utiliser ".
 					"l'application clique sur le lien suivant.\n\r$urlConf".
@@ -352,7 +352,7 @@ class JeanKevin {
 															":identifiant" => $identifiant));
 
 			//Génération d'un code de connexion et du mail
-			$urlConf = "http://".$_SERVER['HTTP_HOST'].WEBROOT."$identifiant/".md5($identifiant.$rep->jk['nom'].$rep->jk['prenom']);
+			$urlConf = "http://".$_SERVER['HTTP_HOST']."$identifiant/".md5($identifiant.$rep->jk['nom'].$rep->jk['prenom']);
 			$message = 	"Hello ".$rep->jk['prenom']."!\n\r".
 						"Merci de t'être inscrit(e) sur Jean-Kévin, pour confirmer ton inscrption et commencer à utiliser ".
 						"l'application clique sur le lien suivant:\n\r$urlConf".
@@ -368,6 +368,33 @@ class JeanKevin {
 		return $reponse;
 	}
 	
+	static function rechercher($mot_cle){
+
+		$reponse  = new stdClass();
+		//Vérification du paramètre en entrée
+		if(strlen($mot_cle)<=2){
+			$reponse->exception = true;
+			$reponse->erreur    = "Erreur de paramètres";
+			return $reponse;
+		}
+
+		//Sélection des JK correspondants
+		$statement = Database::$instance->prepare("SELECT identifiant, nom, prenom, mail FROM jean_kevin".
+				." WHERE nom LIKE %:mot_cle% OR nom LIKE :mot_cle% OR nom LIKE %:mot_cle "
+				." OR prenom LIKE %:mot_cle% OR prenom LIKE :mot_cle% OR prenom LIKE %:mot_cle "
+				." OR identifiant LIKE %:mot_cle% OR identifiant LIKE :mot_cle% OR identifiant LIKE %:mot_cle "
+				." ORDER BY nom, prenom, identifiant ");
+		$statement->execute(array(":mot_cle" => $mot_cle));
+		$reponse->resultats = $statement->fetchAll();
+		//On supprime les doublons du tableau
+		foreach($reponse->resultats as &$jk){
+			for($i=0; $i<count($jk) ;$i++){
+				unset($jk[$i]);
+			}
+		}
+
+		return $reponse;
+	}
 }
 
 ?>
