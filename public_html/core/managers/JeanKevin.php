@@ -62,22 +62,17 @@ class JeanKevin {
 		}
 
 		//Selection du JK
-		$statement = DataBase::$instance->prepare("SELECT * FROM jean_kevin WHERE identifiant = :identifiant "
+		$statement = DataBase::$instance->prepare("SELECT identifiant, nom, prenom "
+			."FROM jean_kevin WHERE identifiant = :identifiant "
 			."AND mot_de_passe = :mdp ;");
 		$ret = $statement->execute(array(":identifiant" => $identifiant,
 										":mdp" => $mdp));
 		$jk = $statement->fetch();
 
 		//Si le compte n'est pas actif on le signal au client
-		if($jk['actif'] == 0){
-			$reponse->actif = false;
-			return $reponse;
-		}
-		else {
-			$reponse->actif = true;
-		}
-
+		$reponse->actif =  ($jk['actif'] == 0)?false:true;
 		$reponse->connecte = ($jk['identifiant'] == $identifiant);
+		$reponse->jk = ($reponse->connecte)?$jk:null;
 		return $reponse;
 
 	}
@@ -99,7 +94,8 @@ class JeanKevin {
 		}
 
 		//Selection du JK
-		$statement = DataBase::$instance->prepare("SELECT * FROM jean_kevin WHERE identifiant = :identifiant ;");
+		$statement = DataBase::$instance->prepare("SELECT identifiant, nom, prenom "
+			."FROM jean_kevin WHERE identifiant = :identifiant ;");
 		$ret       = $statement->execute(array(':identifiant' => $identifiant));
 		$reponse->jk = $statement->fetch();
 		for($i=0; $i<count($reponse->jk) ;$i++){
@@ -238,10 +234,10 @@ class JeanKevin {
 												':mail' => $mail));
 
 		//Génération d'un code de connexion et du mail
-		$urlConf = "http://".$_SERVER['HTTP_HOST'].WEBROOT."$identifiant/".md5($identifiant.$nom.$prenom);
+		$urlConf = "http://".$_SERVER['HTTP_HOST']."$identifiant/".md5($identifiant.$nom.$prenom);
 		$message = 	"Hello $prenom!\n\r".
 					"Merci de t'être inscrit à Jean-Kévin, pour confirmer ton inscrption et commencer à utiliser ".
-					"l'application clique sur le lien suivant.\n\r<a href='$urlConf'>$urlConf</a>".
+					"l'application clique sur le lien suivant.\n\r$urlConf".
 					"\n\r\n\rA bientôt ;)";
 		//Envoie du mail de confirmation
 		$reponse->mailOK = mail($mail, "[JK] Confirmation d'inscription", $message);
@@ -335,7 +331,7 @@ class JeanKevin {
 	 * @param idenetifiant du JK ciblé
 	 * @param mail la nouvelle adresse mail à enregistrer
 	 */
-	static function modifierMail($identifiant, $mail){
+	static function modifierMail($identifiant, $mot_de_passe, $mail){
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
@@ -345,9 +341,10 @@ class JeanKevin {
 			return $reponse;
 		}
 		//On sélectionne le JK s'il existe
-		$rep = self::selectionner($identifiant);
+		$rep = self::connecter($identifiant, $mot_de_passe);
+		$reponse->rep = $rep;
 		//Si Jean Kévin existe et que son compte n'est aps encore actif on modifie son mail
-		if(isset($rep->jk) && isset($rep->actif) && !$rep->actif){
+		if(isset($rep->connecte) && isset($rep->actif) && !$rep->actif && $rep->connecte){
 
 			//Modification du mail dans la BDD
 			$statement = Database::$instance->prepare("UPDATE jean_kevin SET mail = :mail WHERE identifiant = :identifiant");
@@ -355,10 +352,10 @@ class JeanKevin {
 															":identifiant" => $identifiant));
 
 			//Génération d'un code de connexion et du mail
-			$urlConf = "http://".$_SERVER['HTTP_HOST'].WEBROOT."$identifiant/".md5($identifiant.$rep->jk['nom'].$rep->jk['prenom']);
-			$message = 	"Hello $rep->jk['prenom']!\n\r".
+			$urlConf = "http://".$_SERVER['HTTP_HOST']."$identifiant/".md5($identifiant.$rep->jk['nom'].$rep->jk['prenom']);
+			$message = 	"Hello ".$rep->jk['prenom']."!\n\r".
 						"Merci de t'être inscrit(e) sur Jean-Kévin, pour confirmer ton inscrption et commencer à utiliser ".
-						"l'application clique sur le lien suivant:\n\r<a href='$urlConf'>$urlConf</a>".
+						"l'application clique sur le lien suivant:\n\r$urlConf".
 						"\n\r\n\rA bientôt ;)";
 			//Envoie du mail de confirmation
 			$reponse->mailOK = mail($mail, "[JK] Confirmation d'inscription", $message);
@@ -370,7 +367,7 @@ class JeanKevin {
 
 		return $reponse;
 	}
-
+	
 	static function rechercher($mot_cle){
 
 		$reponse  = new stdClass();
@@ -398,7 +395,6 @@ class JeanKevin {
 
 		return $reponse;
 	}
-	
 }
 
 ?>
