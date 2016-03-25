@@ -19,7 +19,7 @@ if(!defined("ROOT")){
 require_once "core/autoloader.php";
 
 echo "<pre>";
-phpinfo();
+//phpinfo();
 echo "</pre>";
 
 //On lance le routeur
