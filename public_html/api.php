@@ -36,8 +36,10 @@ if(isset($_POST['JSON'])){
 
 			//On teste ensuite si le niveau 2 est un nom de méthode valide
 			if(isset($request->niv_2) && method_exists(new $request->niv_1(), $request->niv_2)){
-				$answer->exception = false;
 				$answer = call_user_func_array("$request->niv_1::".$request->niv_2, $request->param);
+				if(!isset($answer->exception)){
+					$answer->exception = false;
+				}
 			}
 
 			//S'il n'y a pas de niveau 2

@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Client :  127.0.0.1
--- Généré le :  Jeu 17 Mars 2016 à 17:59
+-- Généré le :  Ven 25 Mars 2016 à 19:14
 -- Version du serveur :  5.6.17
 -- Version de PHP :  5.5.12
 
@@ -29,6 +29,7 @@ SET time_zone = "+00:00";
 CREATE TABLE IF NOT EXISTS `image` (
   `chemin` varchar(100) COLLATE utf8_bin NOT NULL,
   `identifiant_jk` varchar(30) COLLATE utf8_bin DEFAULT NULL,
+  `id_lieu` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`chemin`),
   KEY `identifiant_jk` (`identifiant_jk`),
   KEY `identifiant_jk_2` (`identifiant_jk`)
@@ -38,9 +39,25 @@ CREATE TABLE IF NOT EXISTS `image` (
 -- Contenu de la table `image`
 --
 
-INSERT INTO `image` (`chemin`, `identifiant_jk`) VALUES
-('img/avatars/jk1/avatar.jpg', 'jk1'),
-('img/avatars/jk1/avatar1.jpg', 'jk1');
+INSERT INTO `image` (`chemin`, `identifiant_jk`, `id_lieu`) VALUES
+('img/avatars/jk1/avatar.jpg', 'jk1', NULL),
+('img/avatars/jk1/avatar1.jpg', 'jk1', NULL);
+
+--
+-- Déclencheurs `image`
+--
+DROP TRIGGER IF EXISTS `trg_insert_image`;
+DELIMITER //
+CREATE TRIGGER `trg_insert_image` BEFORE INSERT ON `image`
+ FOR EACH ROW BEGIN
+
+IF NEW.id_lieu IS NULL AND NEW.identifiant_jk IS NULL THEN
+	CALL RAISE_APPLICATION_ERROR(-20001, "Une image doit être lié à quelque chose");
+END IF;
+
+END
+//
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -91,7 +108,7 @@ INSERT INTO `jean_kevin` (`identifiant`, `nom`, `prenom`, `mail`, `photo`, `mot_
 
 CREATE TABLE IF NOT EXISTS `lieu` (
   `id` int(10) unsigned NOT NULL,
-  `schema` varchar(100) COLLATE utf8_bin NOT NULL,
+  `carte` varchar(100) COLLATE utf8_bin NOT NULL,
   `libelle` varchar(20) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

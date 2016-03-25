@@ -62,7 +62,7 @@ class JeanKevin {
 		}
 
 		//Selection du JK
-		$statement = DataBase::$instance->prepare("SELECT identifiant, nom, prenom "
+		$statement = DataBase::$instance->prepare("SELECT identifiant, nom, prenom, actif "
 			."FROM jean_kevin WHERE identifiant = :identifiant "
 			."AND mot_de_passe = :mdp ;");
 		$ret = $statement->execute(array(":identifiant" => $identifiant,
@@ -71,8 +71,14 @@ class JeanKevin {
 
 		//Si le compte n'est pas actif on le signal au client
 		$reponse->actif =  ($jk['actif'] == 0)?false:true;
+		unset($jk['actif']);
 		$reponse->connecte = ($jk['identifiant'] == $identifiant);
 		$reponse->jk = ($reponse->connecte)?$jk:null;
+
+		//
+		for($i=0; $i<count($reponse->jk) ;$i++){
+			unset($reponse->jk[$i]);
+		}
 		return $reponse;
 
 	}
@@ -94,7 +100,7 @@ class JeanKevin {
 		}
 
 		//Selection du JK
-		$statement = DataBase::$instance->prepare("SELECT identifiant, nom, prenom "
+		$statement = DataBase::$instance->prepare("SELECT identifiant, nom, prenom, mail "
 			."FROM jean_kevin WHERE identifiant = :identifiant ;");
 		$ret       = $statement->execute(array(':identifiant' => $identifiant));
 		$reponse->jk = $statement->fetch();
@@ -379,7 +385,7 @@ class JeanKevin {
 		}
 
 		//Sélection des JK correspondants
-		$statement = Database::$instance->prepare("SELECT identifiant, nom, prenom, mail FROM jean_kevin".
+		$statement = Database::$instance->prepare("SELECT identifiant, nom, prenom, mail FROM jean_kevin"
 				." WHERE nom LIKE %:mot_cle% OR nom LIKE :mot_cle% OR nom LIKE %:mot_cle "
 				." OR prenom LIKE %:mot_cle% OR prenom LIKE :mot_cle% OR prenom LIKE %:mot_cle "
 				." OR identifiant LIKE %:mot_cle% OR identifiant LIKE :mot_cle% OR identifiant LIKE %:mot_cle "
