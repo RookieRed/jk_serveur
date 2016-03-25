@@ -50,30 +50,38 @@ class Lieu {
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
-		if(strlen($libelle) != 0){
+		if(strlen($libelle) == 0){
 			$reponse->exception = true;
 			$reponse->erreur    = "Erreur de paramètres";
 			return $reponse;
 		}
 		//Ajout du lieu dans la BDD
-		$statement = Database::$instance->prepare("INSERT INTO lieu (libelle) VALUES :libelle ;");
-		$statement->execute(array(":libelle" => $libelle));
-
+		$statement = Database::$instance->prepare("INSERT INTO lieu (carte, libelle) VALUES( null, :libelle );");
+		$reponse->ajoutOK = $statement->execute(array(":libelle" => $libelle));
+		return $reponse;
 
 	}
 
 	/**
-	* 
+	* Modifie le libelle du lieu dont l'id est passé en paramètre
+	* @param $id l'id du lieu à modifier
+	* @param $libelle le nouveau libelle à enregistrer 
 	*/
-	static function modifier(){
+	static function modifier($id, $libelle){
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
-		if(strlen($libelle) != 0){
+		if(strlen($libelle) != 0 && strlen($libelle) >= 30 && self::existe($id)){
 			$reponse->exception = true;
-			$reponse->erreur    = "Erreur de paramètres";
+			$reponse->erreur    = "Erreur de paramètres ou id invalide";
 			return $reponse;
 		}
+
+		//Modification du nom
+		$statement = Database::$instance->prepare("UPDATE lieu SET libelle = :libelle WHERE id = :id ;");
+		$reponse->modifOK = $statement->execute(array(	":libelle" => $libelle,
+														":id" => $id));
+		return $reponse;
 
 	}
 
@@ -118,7 +126,7 @@ class Lieu {
 		$statement->execute(array(":id" => $id));
 		$lieu = $statement->fetch();
 		//On retire les lignes doublons du tableau 
-		foreach ($i=0; $i<count($lieu); $i++){
+		for ($i=0; $i<count($lieu); $i++){
 			unset($lieu[$i]);
 		}
 		$reponse->lieu = $lieu;
@@ -128,9 +136,10 @@ class Lieu {
 
 
 	/**
-	* 
+	* Sélectionne tous les lieux de Jean Kévin
+	* @param $jean_kevin l'identifiant de JK
 	*/
-	static function selectionnerMesLieux($jean_kevin){
+	static function selectionnerLieuxJK($jean_kevin){
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
@@ -160,6 +169,28 @@ class Lieu {
 	*/
 	static function rechercher($mot){
 
+		$reponse  = new stdClass();
+		//Vérification du paramètre en entrée
+		if(strlen($jean_kevin) != 0){
+			$reponse->exception = true;
+			$reponse->erreur    = "Erreur de paramètres";
+			return $reponse;
+		}
+
+		//Sélection des JK correspondants
+		$statement = Database::$instance->prepare("SELECT * FROM jean_kevin"
+				." WHERE libelle LIKE %:mot_cle% OR libelle LIKE :mot_cle% OR libelle LIKE %:mot_cle "
+				." ORDER BY libelle, id ");
+		$statement->execute(array(":mot_cle" => $mot));
+		$reponse->resultats = $statement->fetchAll();
+		//On supprime les doublons du tableau
+		foreach($reponse->resultats as &$lieu){
+			for($i=0; $i<count($lieu) ;$i++){
+				unset($lieu[$i]);
+			}
+		}
+
+		return $reponse;
 	}
 
 
