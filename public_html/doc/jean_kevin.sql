@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Client :  127.0.0.1
--- Généré le :  Ven 25 Mars 2016 à 19:14
+-- Généré le :  Sam 26 Mars 2016 à 17:30
 -- Version du serveur :  5.6.17
 -- Version de PHP :  5.5.12
 
@@ -46,13 +46,26 @@ INSERT INTO `image` (`chemin`, `identifiant_jk`, `id_lieu`) VALUES
 --
 -- Déclencheurs `image`
 --
-DROP TRIGGER IF EXISTS `trg_insert_image`;
+DROP TRIGGER IF EXISTS `trg_image_insert`;
 DELIMITER //
-CREATE TRIGGER `trg_insert_image` BEFORE INSERT ON `image`
+CREATE TRIGGER `trg_image_insert` BEFORE INSERT ON `image`
  FOR EACH ROW BEGIN
 
 IF NEW.id_lieu IS NULL AND NEW.identifiant_jk IS NULL THEN
 	CALL RAISE_APPLICATION_ERROR(-20001, "Une image doit être lié à quelque chose");
+END IF;
+
+END
+//
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS `trg_image_update`;
+DELIMITER //
+CREATE TRIGGER `trg_image_update` BEFORE UPDATE ON `image`
+ FOR EACH ROW BEGIN
+
+IF NEW.id_lieu IS NULL AND NEW.identifiant_jk IS NULL THEN
+  CALL RAISE_APPLICATION_ERROR(-20001, "Une image doit être lié à quelque chose");
 END IF;
 
 END
@@ -75,19 +88,15 @@ CREATE TABLE IF NOT EXISTS `jean_kevin` (
   `actif` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`identifiant`),
   UNIQUE KEY `mail` (`mail`),
-  UNIQUE KEY `mail_2` (`mail`),
-  UNIQUE KEY `mail_3` (`mail`),
-  UNIQUE KEY `mail_4` (`mail`),
-  UNIQUE KEY `photo` (`photo`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  UNIQUE KEY `photo` (`photo`),
+  KEY `photo_2` (`photo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 --
 -- Contenu de la table `jean_kevin`
 --
 
 INSERT INTO `jean_kevin` (`identifiant`, `nom`, `prenom`, `mail`, `photo`, `mot_de_passe`, `actif`) VALUES
-('jk1', 'Cédric', 'Eloundou', 'mail@mail.com', 'img/avatars/jk1/avatar.jpg', 'yolo', 1),
-('jk2', 'Ced', 'dric', '', NULL, 'pass', 0),
 ('j-k0', 'nom0', 'pren0', 'jk0@mail.cm', NULL, 'pass', 0),
 ('j-k1', 'nom1', 'pren1', 'jk1@mail.cm', NULL, 'pass', 0),
 ('j-k2', 'nom2', 'pren2', 'jk2@mail.cm', NULL, 'pass', 0),
@@ -98,6 +107,8 @@ INSERT INTO `jean_kevin` (`identifiant`, `nom`, `prenom`, `mail`, `photo`, `mot_
 ('j-k7', 'nom7', 'pren7', 'jk7@mail.cm', NULL, 'pass', 0),
 ('j-k8', 'nom8', 'pren8', 'jk8@mail.cm', NULL, 'pass', 0),
 ('j-k9', 'nom9', 'pren9', 'jk9@mail.cm', NULL, 'pass', 0),
+('jk1', 'Cédric', 'Eloundou', 'mail@mail.com', 'img/avatars/jk1/avatar.jpg', 'yolo', 1),
+('jk2', 'Ced', 'dric', '', NULL, 'pass', 0),
 ('log1', 'nom1', 'prenom1', 'log1@mail.com', NULL, 'pass', 1);
 
 -- --------------------------------------------------------
@@ -107,11 +118,21 @@ INSERT INTO `jean_kevin` (`identifiant`, `nom`, `prenom`, `mail`, `photo`, `mot_
 --
 
 CREATE TABLE IF NOT EXISTS `lieu` (
-  `id` int(10) unsigned NOT NULL,
-  `carte` varchar(100) COLLATE utf8_bin NOT NULL,
-  `libelle` varchar(20) COLLATE utf8_bin DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `carte` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `libelle` varchar(30) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `libelle` (`libelle`),
+  KEY `carte` (`carte`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
+
+--
+-- Contenu de la table `lieu`
+--
+
+INSERT INTO `lieu` (`id`, `carte`, `libelle`) VALUES
+(2, NULL, 'BU Paul Sab'),
+(3, NULL, 'RU Insa');
 
 -- --------------------------------------------------------
 
@@ -127,8 +148,10 @@ CREATE TABLE IF NOT EXISTS `position` (
   `id_lieu` int(11) NOT NULL,
   `jour` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `identifiant_jk` (`identifiant_jk`,`id_lieu`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+  UNIQUE KEY `identifiant_jk` (`identifiant_jk`,`id_lieu`),
+  KEY `id_lieu` (`id_lieu`),
+  KEY `identifiant_jk_2` (`identifiant_jk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -139,8 +162,10 @@ CREATE TABLE IF NOT EXISTS `position` (
 CREATE TABLE IF NOT EXISTS `r_jk_lieu` (
   `identifiant_jk` varchar(20) COLLATE utf8_bin NOT NULL,
   `id_lieu` int(11) NOT NULL,
-  PRIMARY KEY (`identifiant_jk`,`id_lieu`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  PRIMARY KEY (`identifiant_jk`,`id_lieu`),
+  KEY `id_lieu` (`id_lieu`),
+  KEY `identifiant_jk` (`identifiant_jk`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -154,15 +179,16 @@ CREATE TABLE IF NOT EXISTS `r_lier` (
   `surnom1` varchar(20) COLLATE utf8_bin DEFAULT NULL,
   `surnom2` varchar(20) COLLATE utf8_bin DEFAULT NULL,
   `effectif` tinyint(1) NOT NULL,
-  PRIMARY KEY (`identifiant1`,`identifiant2`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  PRIMARY KEY (`identifiant1`,`identifiant2`),
+  KEY `identifiant1` (`identifiant1`),
+  KEY `identifiant2` (`identifiant2`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 --
 -- Contenu de la table `r_lier`
 --
 
 INSERT INTO `r_lier` (`identifiant1`, `identifiant2`, `surnom1`, `surnom2`, `effectif`) VALUES
-('jk2', 'jk1', NULL, NULL, 0),
 ('jk1', 'j-k0', NULL, NULL, 1),
 ('jk1', 'j-k1', NULL, NULL, 1),
 ('jk1', 'j-k2', NULL, NULL, 1),
@@ -170,7 +196,72 @@ INSERT INTO `r_lier` (`identifiant1`, `identifiant2`, `surnom1`, `surnom2`, `eff
 ('jk1', 'j-k4', NULL, NULL, 1),
 ('jk1', 'j-k5', NULL, NULL, 1),
 ('jk1', 'j-k6', NULL, NULL, 1),
-('jk1', 'j-k7', NULL, NULL, 1);
+('jk1', 'j-k7', NULL, NULL, 1),
+('jk2', 'jk1', NULL, NULL, 0);
+
+--
+-- Déclencheurs `r_lier`
+--
+DROP TRIGGER IF EXISTS `trg_r_lier_insert`;
+DELIMITER //
+CREATE TRIGGER `trg_r_lier_insert` BEFORE INSERT ON `r_lier`
+ FOR EACH ROW BEGIN
+
+IF NEW.identifiant1 = NEW.identifiant1 THEN
+	CALL RAISE_APPLICATION_ERROR(-20002, "Amitié avec le même JK impossible");
+END IF;
+
+END
+//
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS `trg_r_lier_update`;
+DELIMITER //
+CREATE TRIGGER `trg_r_lier_update` BEFORE UPDATE ON `r_lier`
+ FOR EACH ROW BEGIN
+
+IF NEW.identifiant1 = NEW.identifiant1 THEN
+  CALL RAISE_APPLICATION_ERROR(-20002, "Amitié avec le même JK impossible");
+END IF;
+
+END
+//
+DELIMITER ;
+
+--
+-- Contraintes pour les tables exportées
+--
+
+--
+-- Contraintes pour la table `jean_kevin`
+--
+ALTER TABLE `jean_kevin`
+  ADD CONSTRAINT `jean_kevin_ibfk_1` FOREIGN KEY (`photo`) REFERENCES `image` (`chemin`);
+
+--
+-- Contraintes pour la table `lieu`
+--
+ALTER TABLE `lieu`
+  ADD CONSTRAINT `lieu_ibfk_1` FOREIGN KEY (`carte`) REFERENCES `image` (`chemin`);
+
+--
+-- Contraintes pour la table `position`
+--
+ALTER TABLE `position`
+  ADD CONSTRAINT `position_ibfk_1` FOREIGN KEY (`identifiant_jk`) REFERENCES `jean_kevin` (`identifiant`);
+
+--
+-- Contraintes pour la table `r_jk_lieu`
+--
+ALTER TABLE `r_jk_lieu`
+  ADD CONSTRAINT `r_jk_lieu_ibfk_1` FOREIGN KEY (`identifiant_jk`) REFERENCES `jean_kevin` (`identifiant`);
+
+--
+-- Contraintes pour la table `r_lier`
+--
+ALTER TABLE `r_lier`
+  ADD CONSTRAINT `fk_amitie_jk2` FOREIGN KEY (`identifiant2`) REFERENCES `jean_kevin` (`identifiant`),
+  ADD CONSTRAINT `fk_amitie_jk1` FOREIGN KEY (`identifiant1`) REFERENCES `jean_kevin` (`identifiant`);
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

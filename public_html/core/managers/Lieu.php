@@ -71,7 +71,7 @@ class Lieu {
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
-		if(strlen($libelle) != 0 && strlen($libelle) >= 30 && self::existe($id)){
+		if(strlen($libelle) == 0 || strlen($libelle) >= 30 || $id == null || $id != intval($id)){
 			$reponse->exception = true;
 			$reponse->erreur    = "Erreur de paramètres ou id invalide";
 			return $reponse;
@@ -134,6 +134,20 @@ class Lieu {
 	}
 
 
+	static function ajouterLieuJK($id, $jean_kevin){
+
+		$reponse  = new stdClass();
+		//Vérification du paramètre en entrée
+		if(strlen($jean_kevin) == 0 || $id == null || $id != intval($id)){
+			$reponse->exception = true;
+			$reponse->erreur    = "Erreur de paramètres";
+			return $reponse;
+		}
+		//Ajout de la relation JK - Lieu
+		$statement = Database::$instance->prepare("INSERT INTO ;");
+		$statement->execute(array(":id" => $id));
+	}
+
 
 	/**
 	* Sélectionne tous les lieux de Jean Kévin
@@ -164,24 +178,28 @@ class Lieu {
 
 	}
 
+	
 	/**
-	* 
-	*/
+	 * Effectue une recherche parmi les lieux enregistrés dans la base de données
+	 * @param mot_cle le mot clé à rechercher
+	 */
 	static function rechercher($mot){
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
-		if(strlen($jean_kevin) != 0){
+		if(strlen($mot) != 0){
 			$reponse->exception = true;
 			$reponse->erreur    = "Erreur de paramètres";
 			return $reponse;
 		}
 
 		//Sélection des JK correspondants
-		$statement = Database::$instance->prepare("SELECT * FROM jean_kevin"
-				." WHERE libelle LIKE %:mot_cle% OR libelle LIKE :mot_cle% OR libelle LIKE %:mot_cle "
+		$statement = Database::$instance->prepare("SELECT DISTINCT * FROM jean_kevin"
+				." WHERE libelle LIKE :mot_deb OR libelle LIKE :mot_mil OR libelle LIKE :mot_fin "
 				." ORDER BY libelle, id ");
-		$statement->execute(array(":mot_cle" => $mot));
+		$statement->execute(array(	":mot_deb" => "$mot%",
+									":mot_mil" => "%$mot%",
+									":mot_fin" => "%$mot"));
 		$reponse->resultats = $statement->fetchAll();
 		//On supprime les doublons du tableau
 		foreach($reponse->resultats as &$lieu){

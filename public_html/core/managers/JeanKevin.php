@@ -374,11 +374,16 @@ class JeanKevin {
 		return $reponse;
 	}
 	
+
+	/**
+	 * Effectue une recherche parmi les JK enregistrés dans la base de données
+	 * @param mot_cle le mot clé à rechercher
+	 */
 	static function rechercher($mot_cle){
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
-		if(strlen($mot_cle)<=2){
+		if(strlen($mot_cle)<2){
 			$reponse->exception = true;
 			$reponse->erreur    = "Erreur de paramètres";
 			return $reponse;
@@ -386,12 +391,15 @@ class JeanKevin {
 
 		//Sélection des JK correspondants
 		$statement = Database::$instance->prepare("SELECT identifiant, nom, prenom, mail FROM jean_kevin"
-				." WHERE nom LIKE %:mot_cle% OR nom LIKE :mot_cle% OR nom LIKE %:mot_cle "
-				." OR prenom LIKE %:mot_cle% OR prenom LIKE :mot_cle% OR prenom LIKE %:mot_cle "
-				." OR identifiant LIKE %:mot_cle% OR identifiant LIKE :mot_cle% OR identifiant LIKE %:mot_cle "
+				." WHERE nom LIKE :mot_deb OR nom LIKE :mot_mil OR nom LIKE :mot_fin "
+				." OR prenom LIKE :mot_deb OR prenom LIKE :mot_mil OR prenom LIKE :mot_fin "
+				." OR identifiant LIKE :mot_deb OR identifiant LIKE :mot_mil OR identifiant LIKE :mot_fin "
 				." ORDER BY nom, prenom, identifiant ");
-		$statement->execute(array(":mot_cle" => $mot_cle));
+		$statement->execute(array(	":mot_deb" => "$mot_cle%",
+									":mot_mil" => "%$mot_cle%",
+									":mot_fin" => "%$mot_cle"));
 		$reponse->resultats = $statement->fetchAll();
+		$reponse->s = $statement;
 		//On supprime les doublons du tableau
 		foreach($reponse->resultats as &$jk){
 			for($i=0; $i<count($jk) ;$i++){
