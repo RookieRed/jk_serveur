@@ -80,6 +80,29 @@ class Image {
     }
 
 
+    /**
+    * Permet de créer un nouveau fichier image sur le serveur
+    * @param $nomImage le nom du fichier
+    * @param $path le dossier où doit être crée le fichier, AVATAR ou CARTE
+    * @return l'handler sur le fichier crée. Ne pas oublier de refermer le fichier après
+    */
+    private static function creerNouvelleImage(&$nomImage, $path){
+
+        //On vérifie que le dossier du jean_kevin existe
+        if(!is_dir($path)){
+            mkdir($path, 07, false);
+        } 
+        //Création du fichier
+        $i = 1;
+        while(file_exists($path."/$nomImage")){
+            $nomParse = explode('.', $nomImage);
+            $nomImage = substr($nomParse[0], 0, strlen($nomParse[0]) - (($i!=1)?strlen($i-1):0) )."$i.$nomParse[1]";
+            $i++;
+        }
+        return fopen($path."/$nomImage", 'a+');
+    }
+
+
 
 	/**
 	* Permet d'ajouter un avatar au JeanKevin dont l'identifiant est spécifié
@@ -89,7 +112,7 @@ class Image {
 	*/
 	static function ajouterAvatar($jean_kevin, $nomImage) {
 
-		$reponse = new stdClass();
+        $reponse = new stdClass();
         //Vérification des paramètres
         if($jean_kevin == null){
             $reponse->exception = true;
@@ -97,49 +120,36 @@ class Image {
             return $reponse;
         }
         
-        //On vérifie que le JK existe
-        if(JeanKevin::existe($jean_kevin)){
+        //Création de la socket serveur
+        $sockClient = self::connecterSocket();
 
-            $path = substr(AVATAR.$jean_kevin,0);
-            //On vérifie que le dossier du jean_kevin existe
-            if(!is_dir($path)){
-                mkdir($path, 0755, false);
-            } 
+        //Création du fichier image
+        $img = self::creerNouvelleImage($nomImage, AVATAR.$jean_kevin);
 
-
-            //Création de la socket serveur
-			$sockClient = self::connecterSocket();
-
-            //Création du fichier image
-            $i = 1;
-            while(file_exists(AVATAR.$jean_kevin."/$nomImage")){
-            	$nomParse = explode('.', $nomImage);
-            	$nomImage = substr($nomParse[0], 0, strlen($nomParse[0]) - (($i!=1)?strlen($i-1):0) )."$i.$nomParse[1]";
-            	$i++;
-            }
-            $img = fopen(AVATAR.$jean_kevin."/$nomImage", 'a+');
-
-            //Reception de l'image
-            while ( ($bfr = socket_read($sockClient, self::$tailleBfr, PHP_BINARY_READ)) != false ){
-           		//Ecriture dans le fichier image
-           		fwrite($img, $bfr);
-            }
+        //On ajoute une image à la base de données
+        $statement = Database::$instance->prepare("INSERT INTO image (chemin, identifiant_jk)"
+            ." VALUES( :path, :jean_kevin );");
+        $reponse->ajoutBD = $statement->execute(array(":path" => AVATAR.$jean_kevin."/$nomImage",
+                                    ":jean_kevin" => $jean_kevin));
+        //S'il y a une erreur sur l'ajout c'est que l'identifiant n'existe probablement pas
+        if(!$reponse->ajoutBD){
             fclose($img);
-            socket_close($sockClient);
-            $reponse->finCommuncation = true;
-
-            //On ajoute une image à la base de données
-            $statement = Database::$instance->prepare("INSERT INTO image (chemin, identifiant_jk)"
-                ." VALUES( :path, :jean_kevin );");
-            $reponse->ajoutBD = $statement->execute(array(":path" => AVATAR.$jean_kevin."/$nomImage",
-                                        ":jean_kevin" => $jean_kevin));
+            unlink(AVATAR.$id_lieu."/$nomImage");
+            $reponse->exception = true;
+            $reponse->statement = $statement;
+            $reponse->erreur = "Jean Kévin existe-t-il?";
             return $reponse;
         }
-
+        //Reception de l'image
         else {
-            $reponse->exception = true;
-            $reponse->error = "Jean Kévin non trouvé";
+            while ( ($bfr = socket_read($sockClient, self::$tailleBfr, PHP_BINARY_READ)) != false ){
+                //Ecriture dans le fichier image
+                fwrite($img, $bfr);
+            }
+            fclose($img);
         }
+        socket_close($sockClient);
+        $reponse->finCommuncation = true;
         return $reponse;
 
     }
@@ -150,7 +160,7 @@ class Image {
     * Selectionne l'avatar actuel de JK et le retourne dans le socket de communication
     * @param identifiant de JK
     */
-    static function selectionnerAvatar($jean_kevin){
+    /*static function selectionnerAvatar($jean_kevin){
 
         $reponse = new stdClass();
         //Vérification des paramètres
@@ -182,29 +192,39 @@ class Image {
         $reponse->finTransfert = true;
         return $reponse;
 
-    }
+    }*/
 
 
     /**
     * 
     */
-    static function selectionner($chemin){
+    static function selectionner($identifiant, $nomImage){
 
         $reponse = new stdClass();
         //Vérification des paramètres
-        if($chemin == null || strlen($chemin)==0){
+        if(strlen($nomImage)==0 || strlen($identifiant) == 0) {
             $reponse->exception = true;
             $reponse->error = "Erreur de parramètres";
             return $reponse;
         }
 
+        //On détermine si l'identifiant est un id de lieu ou un login de JK
+        if(intval($identifiant) === $identifiant){
+            $chemin = CARTE."$identifiant/$nomImage";
+        }
+        else {
+            $chemin = AVATAR."$identifiant/$nomImage";
+        }
+
         //On vérifie que l'image existe dans la base de données
-        $statement = DataBase::$instance->prepare("SELECT * FROM image WHERE chemin = :chemin ;");
-        $statement->execute(array(':chemin' => $chemin));
+        $statement = DataBase::$instance->prepare("SELECT * FROM image WHERE chemin = :chemin" 
+            ." AND (identifiant_jk = :identifiant OR id_lieu = :identifiant ) ;");
+        $ret = $statement->execute(array(   ':chemin' => $chemin,
+                                            ":identifiant" => $identifiant));
         $img = $statement->fetch();
 
         //Si l'image n'existe pas on retourne un message d'erreur
-        if(!$img['chemin'] === $chemin && file_exists($chemin)){
+        if(!($img['chemin'] === $chemin && file_exists($chemin))){
             $reponse->exception = true;
             $reponse->erreur = "L'image n'existe pas";
             return $reponse;
@@ -225,6 +245,9 @@ class Image {
     }
 
 
+    /**
+    * Selectionne les noms de fichiers images enregistrés dans la base de données
+    */
     static function selectionnerNoms($jean_kevin) {
 
         $reponse = new stdClass();
@@ -236,7 +259,7 @@ class Image {
         }
 
         //On vérifie que l'image existe dans la base de données
-        $statement = DataBase::$instance->prepare("SELECT * FROM image WHERE identifiant_jk = :jean_kevin ;");
+        $statement = DataBase::$instance->prepare("SELECT chemin, identifiant_jk FROM image WHERE identifiant_jk = :jean_kevin ;");
         $statement->execute(array(':jean_kevin' => $jean_kevin));
         $reponse->chemins = $statement->fetchAll();
         //On supprime les cases inutiles et on réécrit le chemin
@@ -253,7 +276,47 @@ class Image {
     /**
     *
     */
-    static function ajouterCarte(){
+    static function ajouterCarte($id_lieu, $nomImage){
+
+        $reponse = new stdClass();
+        //Vérification des paramètres
+        if($id_lieu != intval($id_lieu) || strlen($nomImage) == 0){
+            $reponse->exception = true;
+            $reponse->error = "Erreur de parramètres";
+            return $reponse;
+        }
+
+        //Connextion au client
+        $sockClient = self::connecterSocket();
+
+        //Création du nouveau fichier image
+        $carte = self::creerNouvelleImage($nomImage, CARTE.$id_lieu);
+
+        //On ajoute la carte à la base de données
+        $statement = Database::$instance->prepare("INSERT INTO image (chemin, id_lieu)"
+            ." VALUES( :path, :id_lieu );");
+        $reponse->ajoutBD = $statement->execute(array(":path" => CARTE.$id_lieu."/$nomImage",
+                                    ":id_lieu" => $id_lieu));
+
+        //S'il y a une erreur sur l'ajout c'est que l'identifiant n'existe probablement pas
+        if(!$reponse->ajoutBD){
+            $reponse->exception = true;
+            $reponse->erreur = "Lieu non trouvé, ou nom d'image déjà alloué";
+            fclose($carte);
+            unlink(CARTE.$id_lieu."/$nomImage");
+            return $reponse;
+        }
+        //On reçoit l'image du client
+        else {
+            while ( ($bfr = socket_read($sockClient, self::$tailleBfr, PHP_BINARY_READ)) != false ){
+                //Ecriture dans le fichier image
+                fwrite($carte, $bfr);
+            }
+            fclose($carte);
+        }
+
+        socket_close($sockClient);
+        return $reponse;
     	
     }
 
@@ -263,31 +326,34 @@ class Image {
     * @param nom de l'image que l'on souhaite supprimer
     * @param (optionnel) identifiant du JK à spécifier si l'image n'est pas une carte 
     */
-    static function supprimer($nomImage, $jean_kevin=null){
+    static function supprimer($identifiant, $nomImage){
 
         $reponse = new stdClass();
         //Vérification des paramètres
-        if($nomImage == null || strlen($nomImage)==0){
+        if(strlen($nomImage)==0 || strlen($identifiant) == 0){
             $reponse->exception = true;
             $reponse->error = "Erreur de parramètres";
             return $reponse;
         }
 
-        //S'il y a un identifiant indiqué on recherche l'image parmis les avatars
-        if($jean_kevin !== null){
-            $nomImage = AVATAR."$jean_kevin/$nomImage";
+        //On détermine si l'identifiant est un id de lieu ou un login de JK
+        if(intval($identifiant) === $identifiant){
+            $chemin = CARTE."$identifiant/$nomImage";
+            $statement = DataBase::$instance->prepare("UPDATE lieu SET carte = null WHERE id = :identifiant ;");
         }
-        //Sinon on cherche parmi les cartes
         else {
-            $nomImage = CARTE.$nomImage;
+            $chemin = AVATAR."$identifiant/$nomImage";
+            $statement = DataBase::$instance->prepare("UPDATE jean_kevin SET photo = null WHERE identifiant = :identifiant ;");
         }
+        //Ensuite on vérifie que l'image n'est pas enregistré par défaut dans la table JK ou Lieu
+        $statement->execute(array(':identifiant' => $identifiant));
 
         //Suppression de l'image dans la BdD
         $statement = DataBase::$instance->prepare("DELETE FROM image WHERE chemin = :chemin ;");
-        $reponse->suppressionOK = $statement->execute(array(':chemin' => $nomImage));
+        $reponse->suppressionOK = $statement->execute(array(':chemin' => $chemin));
 
         //Suppression du serveur
-        $reponse->suppressionOK = $reponse->suppressionOK && unlink($nomImage);
+        $reponse->suppressionOK = $reponse->suppressionOK && unlink($chemin);
         return $reponse;
     }
 
@@ -295,35 +361,35 @@ class Image {
     /**
     * Vérifie si une image existe et dans la BD et sur le serveur
     * @param nom de l'image dont on cherceh l'existence
-    * @param (optionnel) identifiant du JK à spécifier s'il on ne recherche pas une carte 
+    * @param identifiant du JK à spécifier ou bien l'id du lieu
     */
-    static function existe($nomImage, $jean_kevin=null){
+    static function existe($identifiant, $nomImage){
 
         $reponse = new stdClass();
         //Vérification des paramètres
-        if($nomImage == null || strlen($nomImage)==0){
+        if(strlen($nomImage)==0 || strlen($identifiant) == 0){
             $reponse->exception = true;
             $reponse->error = "Erreur de parramètres";
             return $reponse;
         }
 
-        //S'il y a un identifiant indiqué on recherche l'image parmis les avatars
-        if($jean_kevin !== null){
-            $nomImage = AVATAR."$jean_kevin/$nomImage";
+        //On détermine si l'identifiant est un id de lieu ou un login de JK
+        if(intval($identifiant) === $identifiant){
+            $chemin = CARTE."$identifiant/$nomImage";
         }
-        //Sinon on cherche parmi les cartes
         else {
-            $nomImage = CARTE.$nomImage;
+            $chemin = AVATAR."$identifiant/$nomImage";
         }
 
         //On selectionne l'image
-        $statement = DataBase::$instance->prepare("SELECT * FROM image WHERE chemin = :chemin ;");
-        $ret = $statement->execute(array(':chemin' => $nomImage));
-        $jk  = $statement->fetch();
-        $reponse->existe = ($jk['chemin'] == $nomImage);
+        $statement = DataBase::$instance->prepare("SELECT * FROM image WHERE chemin = :chemin "
+            ."AND (identifiant_jk = :identifiant OR id_lieu = :identifiant ) ;");
+        $ret = $statement->execute(array(   ':chemin' => $chemin,
+                                            ":identifiant" => $identifiant));
+        $image  = $statement->fetch();
 
         //On vérifie que l'image existe aussi sur le serveur
-        $reponse->existe = $reponse->existe && file_exists($nomImage);
+        $reponse->existe = ($image['chemin'] == $chemin) && file_exists($chemin);
         return $reponse;
     }
 

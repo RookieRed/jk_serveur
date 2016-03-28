@@ -162,16 +162,16 @@ class JeanKevin {
 		}
 
 		//On vérifie que l'image existe
-		if(! (Image::existe(AVATAR.$nomImage)->existe)){
+		if(! file_exists(AVATAR."$identifiant/$nomImage")){
 			$reponse->exception = true;
-			$reponse->erreur = "L'image n'existe pas dans la bdd";
+			$reponse->erreur = "L'image n'existe pas sur le serveur";
 			return $reponse;
 		}
 
 		//On modifie la base de données en lui indiquant le nouveau chemin de la photo de profil
 		$statement        = DataBase::$instance->prepare("UPDATE jean_kevin SET photo = :nomImage WHERE identifiant = :identifiant ;");
 		$reponse->modifPP = $statement->execute(array(	":identifiant" 	=> $identifiant,
-														":nomImage"		=> AVATAR.$nomImage));
+														":nomImage"		=> AVATAR."$identifiant/$nomImage"));
 		return $reponse;
 
 	}
@@ -191,8 +191,12 @@ class JeanKevin {
 			return $reponse;
 		}
 
+		//On passe la PP de JK à nulle afin de toutes les supprimer
+		$statement        = DataBase::$instance->prepare("UPDATE jean_kevin SET photo = NULL WHERE identifiant = :identifiant ;");
+		$reponse->modifPP = $statement->execute(array(	":identifiant" 	=> $identifiant));
+
 		//suppression de tous les avatars de JK dans la BdD
-		$statement = DataBase::$instance->prepare("DELETE FROM images WHERE identifiant_jk = :identifiant ;");
+		$statement = DataBase::$instance->prepare("DELETE FROM image WHERE identifiant_jk = :identifiant ;");
 		$reponse->avatarsSuppr = $statement->execute(array(':identifiant_jk' => $identifiant));
 		unset($statement);
 		if (!$reponse->avatarsSuppr){
@@ -233,8 +237,8 @@ class JeanKevin {
 		//Exécution de la requête MySQL
 		$statement = Database::$instance->prepare("INSERT INTO jean_kevin(nom, prenom, identifiant, mot_de_passe, mail)"
 					." VALUES ( :nom , :prenom , :identifiant , :psw , :mail );");
-		$reponse->inscriptionOK = $statement->execute(array(	':nom' => $nom,
-												':prenom' => $prenom ,
+		$reponse->inscriptionOK = $statement->execute(array(	':nom' => ucfirst($nom),
+												':prenom' => ucfirst($prenom) ,
 												':identifiant' => $identifiant ,
 												':psw' => $psw,
 												':mail' => $mail));
@@ -409,6 +413,8 @@ class JeanKevin {
 
 		return $reponse;
 	}
+
+	
 }
 
 ?>

@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 4.1.14
+-- version 4.1.14.8
 -- http://www.phpmyadmin.net
 --
--- Client :  127.0.0.1
--- Généré le :  Sam 26 Mars 2016 à 17:30
--- Version du serveur :  5.6.17
--- Version de PHP :  5.5.12
+-- Client :  db618325086.db.1and1.com
+-- Généré le :  Dim 27 Mars 2016 à 21:25
+-- Version du serveur :  5.5.47-0+deb7u1-log
+-- Version de PHP :  5.4.45-0+deb7u2
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -17,7 +17,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8 */;
 
 --
--- Base de données :  `jean_kevin`
+-- Base de données :  `db618325086`
 --
 
 -- --------------------------------------------------------
@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS `image` (
   `identifiant_jk` varchar(30) COLLATE utf8_bin DEFAULT NULL,
   `id_lieu` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`chemin`),
-  KEY `identifiant_jk` (`identifiant_jk`),
-  KEY `identifiant_jk_2` (`identifiant_jk`)
+  UNIQUE KEY `ind_image_id_lieu` (`id_lieu`),
+  KEY `identifiant_jk` (`identifiant_jk`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 --
@@ -52,20 +52,19 @@ CREATE TRIGGER `trg_image_insert` BEFORE INSERT ON `image`
  FOR EACH ROW BEGIN
 
 IF NEW.id_lieu IS NULL AND NEW.identifiant_jk IS NULL THEN
-	CALL RAISE_APPLICATION_ERROR(-20001, "Une image doit être lié à quelque chose");
+	SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = "Une image doit être lié à quelque chose";
 END IF;
 
 END
 //
 DELIMITER ;
-
 DROP TRIGGER IF EXISTS `trg_image_update`;
 DELIMITER //
 CREATE TRIGGER `trg_image_update` BEFORE UPDATE ON `image`
  FOR EACH ROW BEGIN
 
 IF NEW.id_lieu IS NULL AND NEW.identifiant_jk IS NULL THEN
-  CALL RAISE_APPLICATION_ERROR(-20001, "Une image doit être lié à quelque chose");
+	SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = "Une image doit être lié à quelque chose";
 END IF;
 
 END
@@ -79,7 +78,7 @@ DELIMITER ;
 --
 
 CREATE TABLE IF NOT EXISTS `jean_kevin` (
-  `identifiant` varchar(20) COLLATE utf8_bin NOT NULL,
+  `identifiant` varchar(20) COLLATE utf8_bin NOT NULL DEFAULT '',
   `nom` varchar(30) COLLATE utf8_bin NOT NULL,
   `prenom` varchar(20) COLLATE utf8_bin NOT NULL,
   `mail` varchar(75) COLLATE utf8_bin NOT NULL,
@@ -107,7 +106,7 @@ INSERT INTO `jean_kevin` (`identifiant`, `nom`, `prenom`, `mail`, `photo`, `mot_
 ('j-k7', 'nom7', 'pren7', 'jk7@mail.cm', NULL, 'pass', 0),
 ('j-k8', 'nom8', 'pren8', 'jk8@mail.cm', NULL, 'pass', 0),
 ('j-k9', 'nom9', 'pren9', 'jk9@mail.cm', NULL, 'pass', 0),
-('jk1', 'Cédric', 'Eloundou', 'mail@mail.com', 'img/avatars/jk1/avatar.jpg', 'yolo', 1),
+('jk1', 'Cédric', 'Eloundou', 'mail@mail.com', NULL, 'yolo', 1),
 ('jk2', 'Ced', 'dric', '', NULL, 'pass', 0),
 ('log1', 'nom1', 'prenom1', 'log1@mail.com', NULL, 'pass', 1);
 
@@ -121,18 +120,20 @@ CREATE TABLE IF NOT EXISTS `lieu` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `carte` varchar(100) COLLATE utf8_bin DEFAULT NULL,
   `libelle` varchar(30) COLLATE utf8_bin NOT NULL,
+  `ville` varchar(20) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   KEY `libelle` (`libelle`),
   KEY `carte` (`carte`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=5 ;
 
 --
 -- Contenu de la table `lieu`
 --
 
-INSERT INTO `lieu` (`id`, `carte`, `libelle`) VALUES
-(2, NULL, 'BU Paul Sab'),
-(3, NULL, 'RU Insa');
+INSERT INTO `lieu` (`id`, `carte`, `libelle`, `ville`) VALUES
+(0, NULL, 'o', 'o'),
+(2, NULL, 'BU Paul Sab', 'Toulouse'),
+(3, NULL, 'RU Insa', 'Toulouse');
 
 -- --------------------------------------------------------
 
@@ -208,20 +209,19 @@ CREATE TRIGGER `trg_r_lier_insert` BEFORE INSERT ON `r_lier`
  FOR EACH ROW BEGIN
 
 IF NEW.identifiant1 = NEW.identifiant1 THEN
-	CALL RAISE_APPLICATION_ERROR(-20002, "Amitié avec le même JK impossible");
+	SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = "Amitié avec le même JK impossible";
 END IF;
 
 END
 //
 DELIMITER ;
-
 DROP TRIGGER IF EXISTS `trg_r_lier_update`;
 DELIMITER //
 CREATE TRIGGER `trg_r_lier_update` BEFORE UPDATE ON `r_lier`
  FOR EACH ROW BEGIN
 
 IF NEW.identifiant1 = NEW.identifiant1 THEN
-  CALL RAISE_APPLICATION_ERROR(-20002, "Amitié avec le même JK impossible");
+	SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = "Amitié avec le même JK impossible";
 END IF;
 
 END
@@ -233,16 +233,23 @@ DELIMITER ;
 --
 
 --
+-- Contraintes pour la table `image`
+--
+ALTER TABLE `image`
+  ADD CONSTRAINT `fk_image_lieu` FOREIGN KEY (`id_lieu`) REFERENCES `lieu` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_image_jk` FOREIGN KEY (`identifiant_jk`) REFERENCES `jean_kevin` (`identifiant`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
 -- Contraintes pour la table `jean_kevin`
 --
 ALTER TABLE `jean_kevin`
-  ADD CONSTRAINT `jean_kevin_ibfk_1` FOREIGN KEY (`photo`) REFERENCES `image` (`chemin`);
+  ADD CONSTRAINT `jean_kevin_ibfk_1` FOREIGN KEY (`photo`) REFERENCES `image` (`chemin`) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 --
 -- Contraintes pour la table `lieu`
 --
 ALTER TABLE `lieu`
-  ADD CONSTRAINT `lieu_ibfk_1` FOREIGN KEY (`carte`) REFERENCES `image` (`chemin`);
+  ADD CONSTRAINT `lieu_ibfk_1` FOREIGN KEY (`carte`) REFERENCES `image` (`chemin`) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 --
 -- Contraintes pour la table `position`

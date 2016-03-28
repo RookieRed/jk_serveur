@@ -46,18 +46,19 @@ class Lieu {
 	* Ajoute un lieu dans la base de données
 	* @param libelle le nom du lieu
 	*/
-	static function ajouter($libelle){
+	static function ajouter($libelle, $ville){
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
-		if(strlen($libelle) == 0){
+		if(strlen($libelle) == 0 || strlen($ville) == 0){
 			$reponse->exception = true;
 			$reponse->erreur    = "Erreur de paramètres";
 			return $reponse;
 		}
 		//Ajout du lieu dans la BDD
-		$statement = Database::$instance->prepare("INSERT INTO lieu (carte, libelle) VALUES( null, :libelle );");
-		$reponse->ajoutOK = $statement->execute(array(":libelle" => $libelle));
+		$statement = Database::$instance->prepare("INSERT INTO lieu (carte, libelle, ville) VALUES( null, :libelle, :ville );");
+		$reponse->ajoutOK = $statement->execute(array(	":libelle" => $libelle,
+														":ville" => ucfirst($ville)));
 		return $reponse;
 
 	}
@@ -88,18 +89,35 @@ class Lieu {
 
 
 	/**
-	* Supprime le lieu dont l'id est passé en paramètres
+	* Supprime le lieu dont l'id est passé en paramètres, ainsi que l'intégralité de ses cartes enregistrées 
 	* @param id l'identifiant du lieu
 	*/
 	static function supprimer($id){
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
-		if($id == null || $id != intval($id)){
+		if($id !== intval($id)){
 			$reponse->exception = true;
 			$reponse->erreur    = "Erreur de paramètres";
 			return $reponse;
 		}
+
+		//On passe la carte du lieu à nulle afin de toutes les supprimer
+		$statement        = DataBase::$instance->prepare("UPDATE lieu SET carte = NULL WHERE id = :id ;");
+		$reponse->modifPP = $statement->execute(array(	":id" 	=> $id));
+
+		//suppression de toutes les cartes dans la BdD
+		$statement = DataBase::$instance->prepare("DELETE FROM image WHERE id_lieu = :id_lieu ;");
+		$reponse->avatarsSuppr = $statement->execute(array(':id_lieu' => $id));
+		unset($statement);
+		if (!$reponse->avatarsSuppr){
+			$reponse->exception = true;
+			return $reponse;
+		}
+
+		//Suppression des avatars sur le serveur
+		exec("rm -rf ".CARTE.$id);
+
 		//Suppression du lieu
 		$statement = Database::$instance->prepare("DELETE FROM lieu WHERE id = :id ;");
 		$reponse->supprOK = $statement->execute(array(":id" => $id));
@@ -187,14 +205,15 @@ class Lieu {
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
-		if(strlen($mot) != 0){
+		if(strlen($mot) == 0){
 			$reponse->exception = true;
 			$reponse->erreur    = "Erreur de paramètres";
+			$reponse->mot = $mot;
 			return $reponse;
 		}
 
 		//Sélection des JK correspondants
-		$statement = Database::$instance->prepare("SELECT DISTINCT * FROM jean_kevin"
+		$statement = Database::$instance->prepare("SELECT DISTINCT id, libelle, ville FROM lieu"
 				." WHERE libelle LIKE :mot_deb OR libelle LIKE :mot_mil OR libelle LIKE :mot_fin "
 				." ORDER BY libelle, id ");
 		$statement->execute(array(	":mot_deb" => "$mot%",
