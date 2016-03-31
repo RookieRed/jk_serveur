@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Client :  127.0.0.1
--- Généré le :  Jeu 17 Mars 2016 à 17:59
+-- Généré le :  Ven 25 Mars 2016 à 18:53
 -- Version du serveur :  5.6.17
 -- Version de PHP :  5.5.12
 
@@ -91,7 +91,7 @@ INSERT INTO `jean_kevin` (`identifiant`, `nom`, `prenom`, `mail`, `photo`, `mot_
 
 CREATE TABLE IF NOT EXISTS `lieu` (
   `id` int(10) unsigned NOT NULL,
-  `schema` varchar(100) COLLATE utf8_bin NOT NULL,
+  `carte` varchar(100) COLLATE utf8_bin NOT NULL,
   `libelle` varchar(20) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
