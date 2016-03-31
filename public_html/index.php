@@ -18,10 +18,6 @@ if(!defined("ROOT")){
 //Inclusion de l'autoloader
 require_once "core/autoloader.php";
 
-echo "<pre>";
-//phpinfo();
-echo "</pre>";
-
 //On lance le routeur
 $route = Route::getInstance();
 

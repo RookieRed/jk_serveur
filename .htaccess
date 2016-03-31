@@ -2,6 +2,6 @@ Options -Indexes -MultiViews
 Options +FollowSymlinks
 RewriteEngine On
 
-RewriteBase /
+#RewriteBase /
 
 RewriteRule ^(.*)$ public_html/$1 [L]
