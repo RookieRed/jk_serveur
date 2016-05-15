@@ -414,7 +414,51 @@ class JeanKevin {
 		return $reponse;
 	}
 
+	/**
+	* Inscrit un JK à Lieu enregistré dans la base de données
+	* @param identifiant l'identifiant correspondant à JK
+	* @param id_lieu l'id du lieu auquel JK s'inscrit
+	*/
+	static function inscrireLieu($identifiant, $id_lieu){
+
+		$reponse  = new stdClass();
+		//Vérification du paramètre en entrée
+		if(strlen($identifiant) == 0 || intval($id_lieu) != $id_lieu){
+			$reponse->exception = true;
+			$reponse->erreur    = "Erreur de paramètres";
+			return $reponse;
+		}
+
+		//Ajout de la laison dans la base de données
+		$statement = Database::$instance->prepare("INSERT INTO r_jk_lieu(identifiant_jk, id_lieu)"
+					." VALUES ( :identifiant, :id_lieu );");
+		$reponse->lienOK = $statement->execute(array(	":identifiant" => $identifiant,
+														":id_lieu" => $id_lieu));
+		return $reponse;
+	}
+
 	
+	/**
+	 * Désincrit Jean-Kévin d'un lieu
+	 * @param lieu le lieu dont JK veut se désinscrire
+	 */
+	static function desinscrireLieu($identifiant, $id_lieu){
+
+		$reponse  = new stdClass();
+		//Vérification du paramètre en entrée
+		if(strlen($identifiant) == 0 || intval($id_lieu) != $id_lieu){
+			$reponse->exception = true;
+			$reponse->erreur    = "Erreur de paramètres";
+			return $reponse;
+		}
+
+		//Ajout de la laison dans la base de données
+		$statement = Database::$instance->prepare("DELETE FROM r_jk_lieu WHERE identifiant_jk = :identifiant"
+					." AND id_lieu = :id_lieu ;");
+		$reponse->supprOK = $statement->execute(array(	":identifiant" => $identifiant,
+														":id_lieu" => $id_lieu));
+		return $reponse;
+	}
 }
 
 ?>

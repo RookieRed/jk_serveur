@@ -2,6 +2,5 @@ Options -Indexes -MultiViews
 Options +FollowSymlinks
 RewriteEngine On
 
-#RewriteBase /
-
-RewriteRule ^(.*)$ public_html/$1 [L]
+RewriteCond %{REQUEST_URI}% !^(api.php)?
+RewriteRule ^(.*)$ index.php?$1 [L]

@@ -65,7 +65,6 @@ if(isset($_POST['JSON'])){
 else {
 	//include 'index.php';
 	echo "<pre>";
-	print_r(Image::selectionnerNoms("jk1"));
 	echo "</pre>";
 }
 

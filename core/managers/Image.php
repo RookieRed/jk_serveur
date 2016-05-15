@@ -29,7 +29,7 @@ class Image {
 	/**
 	* Numéro de port d'écoute pour le transgfert d'images
 	*/
-	private static $port = 9997;
+	private static $port = 9887;
 	/**
 	* Taille du buffer pour la communication client - serveur
 	*/
@@ -90,7 +90,7 @@ class Image {
 
         //On vérifie que le dossier du jean_kevin existe
         if(!is_dir($path)){
-            mkdir($path, 07, false);
+            mkdir($path, 0777, false);
         } 
         //Création du fichier
         $i = 1;
@@ -125,29 +125,41 @@ class Image {
 
         //Création du fichier image
         $img = self::creerNouvelleImage($nomImage, AVATAR.$jean_kevin);
+        $imgPath = AVATAR.$jean_kevin."/$nomImage";
 
         //On ajoute une image à la base de données
-        $statement = Database::$instance->prepare("INSERT INTO image (chemin, identifiant_jk)"
+        /*$statement = Database::$instance->prepare("INSERT INTO image (chemin, identifiant_jk)"
             ." VALUES( :path, :jean_kevin );");
-        $reponse->ajoutBD = $statement->execute(array(":path" => AVATAR.$jean_kevin."/$nomImage",
+        $reponse->ajoutBD = $statement->execute(array(":path" => $imgPath,
                                     ":jean_kevin" => $jean_kevin));
-        //S'il y a une erreur sur l'ajout c'est que l'identifiant n'existe probablement pas
+        //S'il y a une erreur sur l'ajout alors on teste JK
         if(!$reponse->ajoutBD){
-            fclose($img);
-            unlink(AVATAR.$id_lieu."/$nomImage");
             $reponse->exception = true;
-            $reponse->statement = $statement;
-            $reponse->erreur = "Jean Kévin existe-t-il?";
+            //Suppression de l'image crée côté serveur
+            fclose($img);
+            $reponse->suprrServ = unlink($imgPath);
+            if(JeanKevin::existe($jean_kevin)){
+                $statement = Database::$instance->prepare("DELETE FROM image "
+                    ." WHERE chemin = :path AND identifiant_jk = :jean_kevin;");
+                $reponse->suprrBD = $statement->execute(array(":path" => $imgPath,
+                    ":jean_kevin" => $jean_kevin));
+                $reponse->error = "Erreur serveur lors de l'enregistrement de l'image";
+            }
+            else {
+                $reponse->error = "Jean-Kévin n'existe pas";
+            }
             return $reponse;
         }
         //Reception de l'image
-        else {
+        else {*/
+            $reponse->bfr = "";
             while ( ($bfr = socket_read($sockClient, self::$tailleBfr, PHP_BINARY_READ)) != false ){
                 //Ecriture dans le fichier image
+                $reponse->bfr .= $bfr;
                 fwrite($img, $bfr);
             }
             fclose($img);
-        }
+        //}
         socket_close($sockClient);
         $reponse->finCommuncation = true;
         return $reponse;

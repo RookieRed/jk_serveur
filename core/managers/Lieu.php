@@ -83,12 +83,13 @@ class Lieu {
 		$reponse->modifOK = $statement->execute(array(	":libelle" => $libelle,
 														":id" => $id));
 		return $reponse;
+
 	}
 
 
 
 	/**
-	* Supprime le lieu dont l'id est passé en paramètres, ainsi que l'intégralité de ses cartes enregistrées
+	* Supprime le lieu dont l'id est passé en paramètres, ainsi que l'intégralité de ses cartes enregistrées 
 	* @param id l'identifiant du lieu
 	*/
 	static function supprimer($id){
@@ -151,6 +152,12 @@ class Lieu {
 	}
 
 
+	/**
+	 * Inscrit Jean-Kévin à un lieu enregistré
+	 * @param $id id du lieu auquel JK souhaite s'inscrire
+	 * @param $jean_kevin l'identifiant du JK correspondant 
+	 * @return vrai en cas de succès faux sinon
+	 */
 	static function ajouterLieuJK($id, $jean_kevin){
 
 		$reponse  = new stdClass();
@@ -161,8 +168,11 @@ class Lieu {
 			return $reponse;
 		}
 		//Ajout de la relation JK - Lieu
-		$statement = Database::$instance->prepare("INSERT INTO ;");
-		$statement->execute(array(":id" => $id));
+		$statement = Database::$instance->prepare("INSERT INTO `r_jk_lieu`(`identifiant_jk`, `id_lieu`)" 
+			." VALUES ( :jean_kevin , :id ) ;");
+		$reponse->ajoutLienOK = $statement->execute(array(":id" 	  => $id,
+														":jean_kevin" => $jean_kevin));
+		return $reponse;
 	}
 
 
@@ -174,25 +184,46 @@ class Lieu {
 
 		$reponse  = new stdClass();
 		//Vérification du paramètre en entrée
-		if(strlen($jean_kevin) != 0){
+		if(strlen($jean_kevin) == 0){
 			$reponse->exception = true;
 			$reponse->erreur    = "Erreur de paramètres";
 			return $reponse;
 		}
 
-		$statement = Database::$instance->prepare("SELECT l.id, l.libelle, l.carte FROM lieu l, r_jk_lieu r"
-			." WHERE r.identifiant = :identifiant ;");
+		$statement = Database::$instance->prepare("SELECT l.id, l.libelle, l.ville FROM lieu l, r_jk_lieu r"
+			." WHERE r.identifiant_jk = :identifiant"
+			." AND l.id = r.id_lieu;");
 		$statement->execute(array(":identifiant" => $jean_kevin));
-		$lieux = $statement->fatchAll();
+		$lieux = $statement->fetchAll();
 		//On supprime les lignes doublons
-		foreach ($lieux as $num => &$lieu) {
-			for ($i=0; $i < count($lieu); $i++) { 
-				unset($lieu[$i]);
+		if($lieux != false){
+			foreach ($lieux as $num => &$lieu) {
+				for ($i=0; $i < count($lieu); $i++) { 
+					unset($lieu[$i]);
+				}
 			}
 		}
 		$reponse->lieux = $lieux;
 		return $reponse;
 
+	}
+
+	static function supprimerLieuJK($id, $jean_kevin){
+
+		$reponse  = new stdClass();
+		//Vérification du paramètre en entrée
+		if(strlen($jean_kevin) == 0 || $id == null || $id != intval($id)){
+			$reponse->exception = true;
+			$reponse->erreur    = "Erreur de paramètres";
+			return $reponse;
+		}
+
+		//Suprression de la relation JK - Lieu
+		$statement = Database::$instance->prepare("DELETE FROM `r_jk_lieu` " 
+			." WHERE identifiant_jk = :jean_kevin AND id_lieu = :id ;");
+		$reponse->suppressionOK = $statement->execute(array(":id"		  => $id,
+															":jean_kevin" => $jean_kevin));
+		return $reponse;
 	}
 
 	

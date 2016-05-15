@@ -18,7 +18,7 @@
 /**
 * Database ne contient qu'une instance static de l'objet PDO
 * C'est le fichier de configuration de connexion à la BdD
-* Pour l'utiliser il faut instancier la connexion et utiliser l'objet PDO
+* Pour l'utiliser il faut instancier la connexion et utiliser l'attribu $instance
 */
 class Database {
 	
@@ -37,16 +37,9 @@ class Database {
 		if(self::$instance==null){
 
 			//Instanciation des données de connection
-			if($_SERVER['HTTP_HOST'] == "localhost"){
 				self::$dsn  = "mysql:dbname=jean_kevin;host=localhost;charset=UTF8";
 				self::$user = "root";
-				self::$psw  = "";
-			}
-			else {
-				self::$dsn  = "mysql:dbname=db618325086;host=db618325086.db.1and1.com;charset=UTF8";
-				self::$user = "dbo618325086";
-				self::$psw  = "q2lG3Nk6a4";
-			}
+				self::$psw  = "dophino13";
 
 			//On lance la connexion (objet PDO)
 			try {
@@ -56,9 +49,9 @@ class Database {
 				echo "Erreur connexion BdD:\n".$e->getMessage();
 			}
 		}
-		//Si la connexion échou on arrête le processus
+		//Si la connexion échoue on arrête le processus
 		if(self::$instance==null)
-			die("\nConnexion à la base impossible");
+			die("\nConnexion à la base de données impossible");
 	}
 
 }

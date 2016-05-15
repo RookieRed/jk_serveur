@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Client :  db618325086.db.1and1.com
--- Généré le :  Dim 27 Mars 2016 à 21:25
+-- Généré le :  Dim 27 Mars 2016 à 21:04
 -- Version du serveur :  5.5.47-0+deb7u1-log
 -- Version de PHP :  5.4.45-0+deb7u2
 
@@ -106,7 +106,7 @@ INSERT INTO `jean_kevin` (`identifiant`, `nom`, `prenom`, `mail`, `photo`, `mot_
 ('j-k7', 'nom7', 'pren7', 'jk7@mail.cm', NULL, 'pass', 0),
 ('j-k8', 'nom8', 'pren8', 'jk8@mail.cm', NULL, 'pass', 0),
 ('j-k9', 'nom9', 'pren9', 'jk9@mail.cm', NULL, 'pass', 0),
-('jk1', 'Cédric', 'Eloundou', 'mail@mail.com', NULL, 'yolo', 1),
+('jk1', 'Cédric', 'Eloundou', 'mail@mail.com', 'img/avatars/jk1/avatar.jpg', 'yolo', 1),
 ('jk2', 'Ced', 'dric', '', NULL, 'pass', 0),
 ('log1', 'nom1', 'prenom1', 'log1@mail.com', NULL, 'pass', 1);
 
@@ -131,6 +131,7 @@ CREATE TABLE IF NOT EXISTS `lieu` (
 --
 
 INSERT INTO `lieu` (`id`, `carte`, `libelle`, `ville`) VALUES
+(0, NULL, 'o', 'o'),
 (2, NULL, 'BU Paul Sab', 'Toulouse'),
 (3, NULL, 'RU Insa', 'Toulouse');
 
@@ -235,20 +236,20 @@ DELIMITER ;
 -- Contraintes pour la table `image`
 --
 ALTER TABLE `image`
-  ADD CONSTRAINT `fk_image_lieu` FOREIGN KEY (`id_lieu`) REFERENCES `lieu` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_image_jk` FOREIGN KEY (`identifiant_jk`) REFERENCES `jean_kevin` (`identifiant`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+  ADD CONSTRAINT `fk_image_jk` FOREIGN KEY (`identifiant_jk`) REFERENCES `jean_kevin` (`identifiant`),
+  ADD CONSTRAINT `fk_image_lieu` FOREIGN KEY (`id_lieu`) REFERENCES `lieu` (`id`);
 
 --
 -- Contraintes pour la table `jean_kevin`
 --
 ALTER TABLE `jean_kevin`
-  ADD CONSTRAINT `jean_kevin_ibfk_1` FOREIGN KEY (`photo`) REFERENCES `image` (`chemin`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+  ADD CONSTRAINT `jean_kevin_ibfk_1` FOREIGN KEY (`photo`) REFERENCES `image` (`chemin`);
 
 --
 -- Contraintes pour la table `lieu`
 --
 ALTER TABLE `lieu`
-  ADD CONSTRAINT `lieu_ibfk_1` FOREIGN KEY (`carte`) REFERENCES `image` (`chemin`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+  ADD CONSTRAINT `lieu_ibfk_1` FOREIGN KEY (`carte`) REFERENCES `image` (`chemin`);
 
 --
 -- Contraintes pour la table `position`
